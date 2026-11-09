@@ -5,8 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { approveToken } from './approveToken'
 import { buildApproveToken } from './buildApproveToken'
+import { getTokenBalance } from './getTokenBalance'
 
 vi.mock('./buildApproveToken')
+vi.mock('./getTokenBalance')
 
 const ASSET_ID = '0x2222222222222222222222222222222222222222'
 const ACCOUNT = '0x3333333333333333333333333333333333333333'
@@ -72,5 +74,21 @@ describe('approveToken', () => {
     })
 
     await expect(approveToken(signer, 1n, 'WETH')).rejects.toThrow(MissingParameterError)
+  })
+
+  it('resets allowance to zero before approving when existing gatewayAllowance is nonzero', async () => {
+    vi.mocked(getTokenBalance).mockResolvedValue({
+      balance: 10_000_000n,
+      gatewayAllowance: 500_000n
+    })
+    const signer = buildSigner({
+      transport: {} as WalletClient['transport']
+    })
+
+    await approveToken(signer, 1_000_000n, 'USDT')
+
+    expect(buildApproveToken).toHaveBeenNthCalledWith(1, 'USDT', 0n)
+    expect(buildApproveToken).toHaveBeenNthCalledWith(2, 'USDT', 1_000_000n)
+    expect(signer.sendTransaction).toHaveBeenCalledTimes(2)
   })
 })
