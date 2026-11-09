@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { PolkadotApi } from '../api/PolkadotApi'
+import { AMOUNT_ALL } from '../constants'
+import { getTransferableAmountInternal } from '../transfer'
 import type { TBatchedTransferOptions, TTransferBaseOptions } from '../types'
 import { BatchMode } from '../types'
 import { createTransferOrSwap } from '../utils'
@@ -8,6 +10,7 @@ import BatchTransactionManager from './BatchTransactionManager'
 import type { GeneralBuilder } from './Builder'
 
 vi.mock('../utils')
+vi.mock('../transfer')
 
 const mockApi = {
   init: vi.fn(),
@@ -15,15 +18,18 @@ const mockApi = {
   callBatchMethod: vi.fn()
 } as unknown as PolkadotApi<unknown, unknown, unknown>
 
-const createBuilder = () =>
-  ({
+const createBuilder = () => {
+  const builder = {
+    currency: vi.fn(() => builder),
     createTxFactory: vi.fn(() => vi.fn())
-  }) as unknown as GeneralBuilder<
+  }
+  return builder as unknown as GeneralBuilder<
     unknown,
     unknown,
     unknown,
     TTransferBaseOptions<unknown, unknown, unknown>
   >
+}
 
 const createTransferOptions = (
   overrides: Partial<TBatchedTransferOptions<unknown, unknown, unknown>> = {}
@@ -112,6 +118,52 @@ describe('BatchTransactionManager', () => {
       await expect(
         manager.buildBatch(mockApi, 'Acala', { mode: BatchMode.BATCH_ALL })
       ).rejects.toThrow('All transactions must have the same origin.')
+    })
+
+    it('throws BatchValidationError when two ALL transfers for the same asset and sender are batched', async () => {
+      const manager = new BatchTransactionManager()
+      manager.addTransaction(
+        createTransferOptions({
+          sender: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+          currency: { symbol: 'ACA', amount: AMOUNT_ALL }
+        })
+      )
+      manager.addTransaction(
+        createTransferOptions({
+          sender: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+          currency: { symbol: 'ACA', amount: AMOUNT_ALL }
+        })
+      )
+
+      await expect(
+        manager.buildBatch(mockApi, 'Acala', { mode: BatchMode.BATCH_ALL })
+      ).rejects.toThrow('Cannot batch multiple "ALL" transfers for the same asset.')
+    })
+
+    it('deducts explicit sibling transfer amounts of the same asset from an ALL transfer in the batch', async () => {
+      const manager = new BatchTransactionManager()
+      manager.addTransaction(
+        createTransferOptions({
+          sender: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+          currency: { symbol: 'ACA', amount: 300n }
+        })
+      )
+      manager.addTransaction(
+        createTransferOptions({
+          sender: '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY',
+          currency: { symbol: 'ACA', amount: AMOUNT_ALL }
+        })
+      )
+      vi.mocked(getTransferableAmountInternal).mockResolvedValue(1000n)
+      vi.mocked(createTransferOrSwap).mockResolvedValue({ hash: 'hash' })
+
+      await manager.buildBatch(mockApi, 'Acala', { mode: BatchMode.BATCH_ALL })
+
+      expect(createTransferOrSwap).toHaveBeenCalledTimes(2)
+      expect(vi.mocked(createTransferOrSwap).mock.calls[1][0].currency).toEqual({
+        symbol: 'ACA',
+        amount: 700n
+      })
     })
   })
 })
