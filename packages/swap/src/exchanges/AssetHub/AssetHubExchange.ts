@@ -182,7 +182,7 @@ class AssetHubExchange extends ExchangeChain<'GENERIC'> {
   async getAmountOut<TApi, TRes, TSigner, TCustomChain extends string = never>(
     options: TGenericGetAmountOutOptions<TApi, TRes, TSigner, TCustomChain>,
   ) {
-    const { api, assetFrom, assetTo, amount, origin } = options;
+    const { api, assetFrom, assetTo, amount, origin, slippagePct = '0' } = options;
 
     const nativeAsset = getExchangeAsset(this.chain, {
       symbol: getNativeAssetSymbol(this.chain),
@@ -201,14 +201,16 @@ class AssetHubExchange extends ExchangeChain<'GENERIC'> {
 
     const pctDestFee = origin ? DEST_FEE_BUFFER_PCT : 0;
     const amountWithoutFee = padValueBy(amount, pctDestFee);
+    const slippageMultiplier = Number(slippagePct);
 
     if (isAssetFromNative || isAssetToNative) {
-      return this.quoteOrThrow(
+      const amountOut = await this.quoteOrThrow(
         api,
         localizeLocation(this.chain, assetFrom.location),
         localizeLocation(this.chain, assetTo.location),
         amountWithoutFee,
       );
+      return padValueBy(amountOut, -slippageMultiplier);
     } else {
       const hop1AmountOut = await this.quoteOrThrow(
         api,
@@ -238,7 +240,7 @@ class AssetHubExchange extends ExchangeChain<'GENERIC'> {
         );
       }
 
-      return finalAmountOut;
+      return padValueBy(finalAmountOut, -slippageMultiplier);
     }
   }
 

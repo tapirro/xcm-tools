@@ -375,12 +375,27 @@ describe('AssetHubExchange', () => {
       vi.mocked(mockPolkadotApi.queryRuntimeApi).mockResolvedValueOnce(2000n);
 
       const amountOut = await instance.getAmountOut(opts);
-      expect(amountOut).toEqual(2000n);
+      expect(amountOut).toEqual(1900n);
       expect(mockPolkadotApi.queryRuntimeApi).toHaveBeenCalledExactlyOnceWith({
         module: 'AssetConversionApi',
         method: 'quote_price_exact_tokens_for_tokens',
         params: [assetNative.location, assetB.location, 1000n, true],
       });
+    });
+
+    it('should return raw amountOut when slippagePct is omitted', async () => {
+      const opts = {
+        ...baseSwapOptions,
+        assetFrom: assetNative,
+        assetTo: assetB,
+        origin: undefined,
+        slippagePct: undefined,
+      } as TGenericSwapOptions<unknown, unknown, unknown>;
+
+      vi.mocked(mockPolkadotApi.queryRuntimeApi).mockResolvedValueOnce(2000n);
+
+      const amountOut = await instance.getAmountOut(opts);
+      expect(amountOut).toEqual(2000n);
     });
 
     it('should return amountOut for single hop when assetTo is native', async () => {
@@ -394,7 +409,7 @@ describe('AssetHubExchange', () => {
       vi.mocked(mockPolkadotApi.queryRuntimeApi).mockResolvedValueOnce(2000n);
 
       const amountOut = await instance.getAmountOut(opts);
-      expect(amountOut).toEqual(2000n);
+      expect(amountOut).toEqual(1900n);
       expect(mockPolkadotApi.queryRuntimeApi).toHaveBeenCalledExactlyOnceWith({
         module: 'AssetConversionApi',
         method: 'quote_price_exact_tokens_for_tokens',
@@ -413,7 +428,7 @@ describe('AssetHubExchange', () => {
       vi.mocked(mockPolkadotApi.queryRuntimeApi).mockResolvedValueOnce(2000n);
 
       const amountOut = await instance.getAmountOut(opts);
-      expect(amountOut).toEqual(2000n);
+      expect(amountOut).toEqual(1900n);
       expect(mockPolkadotApi.queryRuntimeApi).toHaveBeenCalledWith({
         module: 'AssetConversionApi',
         method: 'quote_price_exact_tokens_for_tokens',
@@ -434,7 +449,7 @@ describe('AssetHubExchange', () => {
         .mockResolvedValueOnce(950n);
 
       const amountOut = await instance.getAmountOut(opts);
-      expect(amountOut).toEqual(950n);
+      expect(amountOut).toEqual(902n);
       expect(mockPolkadotApi.queryRuntimeApi).toHaveBeenCalledTimes(2);
 
       expect(mockPolkadotApi.queryRuntimeApi).toHaveBeenNthCalledWith(1, {
@@ -463,7 +478,7 @@ describe('AssetHubExchange', () => {
         .mockResolvedValueOnce(950n);
 
       const amountOut = await instance.getAmountOut(opts);
-      expect(amountOut).toEqual(950n);
+      expect(amountOut).toEqual(902n);
 
       expect(mockPolkadotApi.queryRuntimeApi).toHaveBeenNthCalledWith(1, {
         module: 'AssetConversionApi',
