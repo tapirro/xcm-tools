@@ -349,6 +349,39 @@ describe('createSwapExecuteXcm', () => {
 
       expect(createBaseExecuteXcm).toHaveBeenCalledTimes(1)
     })
+
+    it('forwards DOT fee asset on exchange -> AssetHub leg when swapping DOT -> WETH on non-AssetHub exchange', async () => {
+      const dotFrom: WithAmount<TAssetInfo> = {
+        amount: 5000n,
+        location: { parents: 1, interior: 'Here' },
+        symbol: 'DOT',
+        decimals: 10,
+        existentialDeposit: '1000'
+      }
+      vi.mocked(isAssetEqual).mockImplementation((a, b) => a.symbol === b.symbol)
+
+      await createSwapExecuteXcm({
+        ...baseEthOptions,
+        chain: undefined,
+        exchangeChain: 'Hydration',
+        destChain: 'Ethereum',
+        assetInfoFrom: dotFrom,
+        assetInfoTo: wethTo
+      })
+
+      const [commonCall] = vi.mocked(prepareCommonExecuteXcm).mock.calls[0]
+      expect(commonCall.feeAssetInfo).toBeUndefined()
+
+      expect(createBaseExecuteXcm).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chain: 'Hydration',
+          destChain: 'AssetHubPolkadot',
+          assetInfo: expect.objectContaining({ symbol: 'WETH' }),
+          feeAssetInfo: expect.objectContaining({ symbol: 'DOT' }),
+          fees: { originFee: 700n, reserveFee: 700n, destFee: 700n }
+        })
+      )
+    })
   })
 
   describe('user fee asset', () => {

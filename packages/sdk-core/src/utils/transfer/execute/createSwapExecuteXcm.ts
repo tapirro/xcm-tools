@@ -160,25 +160,30 @@ export const createSwapExecuteXcm = async <
     const [bridgeFee, executionFee] = await getParaEthTransferFees(ahApi)
     ethBridgeFee = bridgeFee + executionFee
 
-    if (!isAssetEqual(assetInfoFrom, nativeFeeAssetInfo)) {
+    if (!isAssetEqual(assetInfoTo, nativeFeeAssetInfo)) {
       ethFeeAssetInfo = nativeFeeAssetInfo
     }
   }
 
   // Ethereum fee asset takes precedence over user-provided feeAssetInfo
-  const resolvedFeeAssetInfo = isEthereumDest
-    ? ethFeeAssetInfo
-    : getFeeAssetInfo(assetInfoFrom, feeAssetInfo)
+  const resolvedFeeAssetInfo = getFeeAssetInfo(
+    assetInfoFrom,
+    isEthereumDest ? ethFeeAssetInfo : feeAssetInfo
+  )
 
   const hasSeparateFeeAsset = resolvedFeeAssetInfo !== undefined
 
-  const createLegFees = (reserveFee: bigint, destFee: bigint): TTransferFeeEstimates => ({
-    originFee: hasSeparateFeeAsset ? ethBridgeFee : 0n,
-    reserveFee: ethFeeAssetInfo ? ethBridgeFee : reserveFee,
+  const createLegFees = (
+    reserveFee: bigint,
+    destFee: bigint,
+    legFeeAssetInfo?: TAssetInfo
+  ): TTransferFeeEstimates => ({
+    originFee: legFeeAssetInfo ? ethBridgeFee : 0n,
+    reserveFee: legFeeAssetInfo && isEthereumDest ? ethBridgeFee : reserveFee,
     destFee: isEthereumDest ? ethBridgeFee : destFee
   })
 
-  const feeAssetBudget = ethFeeAssetInfo
+  const feeAssetBudget = isEthereumDest
     ? ethBridgeFee
     : originFee + originReserveFee + exchangeFee + destReserveFee + destFee
 
@@ -267,7 +272,7 @@ export const createSwapExecuteXcm = async <
             paraIdTo: getParaId(resolvedDestChain!),
             version,
             recipient,
-            fees: createLegFees(destReserveFee, destFee),
+            fees: createLegFees(destReserveFee, destFee, ethFeeAssetInfo),
             suffixXcm: snowbridgeInstructions
           })
   } else if (destChain) {
@@ -297,7 +302,7 @@ export const createSwapExecuteXcm = async <
         paraIdTo: getParaId(exchangeChain),
         version,
         recipient,
-        fees: createLegFees(originReserveFee, exchangeFee),
+        fees: createLegFees(originReserveFee, exchangeFee, resolvedFeeAssetInfo),
         suffixXcm: [...exchangeInstructions, ...exchangeToDestXcm]
       })
     : [...exchangeInstructions, ...exchangeToDestXcm]
