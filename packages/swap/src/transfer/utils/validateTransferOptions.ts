@@ -37,6 +37,19 @@ export const validateTransferOptions = <TApi, TRes, TSigner, TCustomChain extend
   if (from && isChainEvm(from) && !evmSenderAddress) {
     throw new MissingParameterError('evmSenderAddress', 'EVM sender address is required');
   }
+
+  if (
+    exchange !== undefined &&
+    !Array.isArray(exchange) &&
+    (!from || from === exchange) &&
+    (!to || to === exchange) &&
+    recipient &&
+    recipient !== sender
+  ) {
+    throw new InvalidAddressError(
+      'Recipient address must match sender address for same-chain swaps.',
+    );
+  }
 };
 
 export const validateRoutedFeeAsset = <TApi, TRes, TSigner, TCustomChain extends string = never>({

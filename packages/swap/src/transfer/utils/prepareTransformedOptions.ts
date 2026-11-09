@@ -1,6 +1,7 @@
 import {
   applyDecimalAbstraction,
   convertBuilderConfig,
+  InvalidAddressError,
   UnsupportedOperationError,
 } from '@paraspell/sdk-core';
 
@@ -51,6 +52,12 @@ export const prepareTransformedOptions = async <
 
   const originSpecified = from && originApi && from !== dex.chain;
   const destinationSpecified = to && to !== dex.chain;
+
+  if (!originSpecified && !destinationSpecified && recipient && recipient !== sender) {
+    throw new InvalidAddressError(
+      'Recipient address must match sender address for same-chain swaps.',
+    );
+  }
 
   const exchangeApi = await api.createApiForChain(dex.chain);
 

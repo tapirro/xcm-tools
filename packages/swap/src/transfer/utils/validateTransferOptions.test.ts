@@ -1,4 +1,8 @@
-import { MissingParameterError, ScenarioNotSupportedError } from '@paraspell/sdk-core';
+import {
+  InvalidAddressError,
+  MissingParameterError,
+  ScenarioNotSupportedError,
+} from '@paraspell/sdk-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { TBuildTransactionsOptions } from '../../types';
@@ -114,6 +118,35 @@ describe('validateTransferOptions', () => {
     } as TBuildTransactionsOptions<unknown, unknown, unknown>;
 
     expect(() => validateTransferOptions(mockOptions)).toThrow(MissingParameterError);
+  });
+
+  it('should throw InvalidAddressError when recipient differs from sender for a same-chain swap', () => {
+    const mockOptions = {
+      evmSenderAddress: undefined,
+      sender: 'Alice',
+      recipient: 'Bob',
+      from: 'AssetHubPolkadot',
+      exchange: 'AssetHubPolkadot',
+      to: 'AssetHubPolkadot',
+    } as TBuildTransactionsOptions<unknown, unknown, unknown>;
+
+    expect(() => validateTransferOptions(mockOptions)).toThrow(InvalidAddressError);
+    expect(() => validateTransferOptions(mockOptions)).toThrow(
+      'Recipient address must match sender address for same-chain swaps.',
+    );
+  });
+
+  it('should allow same-chain swap when recipient matches sender', () => {
+    const mockOptions = {
+      evmSenderAddress: undefined,
+      sender: 'Alice',
+      recipient: 'Alice',
+      from: 'AssetHubPolkadot',
+      exchange: 'AssetHubPolkadot',
+      to: 'AssetHubPolkadot',
+    } as TBuildTransactionsOptions<unknown, unknown, unknown>;
+
+    expect(() => validateTransferOptions(mockOptions)).not.toThrow();
   });
 });
 

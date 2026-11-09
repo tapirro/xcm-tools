@@ -247,4 +247,31 @@ describe('prepareTransformedOptions', () => {
       `Exchange ${mockDexChain.chain} does not support the pair ASTR -> ASTR`,
     );
   });
+
+  test('throws InvalidAddressError when recipient differs from sender on a same-chain swap', async () => {
+    const mockOptions = {
+      from: 'AssetHubPolkadot',
+      to: 'AssetHubPolkadot',
+      currencyFrom: { symbol: 'DOT' },
+      currencyTo: { symbol: 'USDT' },
+      exchange: 'AssetHubPolkadot',
+      sender: 'Alice',
+      recipient: 'Bob',
+    } as TTransferBaseOptions<unknown, unknown, unknown>;
+
+    const mockDexChain = {
+      chain: 'AssetHubPolkadot',
+    } as ExchangeChain;
+
+    vi.mocked(createExchangeInstance).mockReturnValue(mockDexChain);
+    vi.mocked(findAssetInfo).mockReturnValue(acaAsset);
+    vi.mocked(getExchangeAssetByOriginAsset).mockReturnValue(acaAsset);
+    vi.mocked(getExchangeAsset).mockReturnValue(astrAsset);
+    vi.mocked(getSupportedAssetsImpl).mockReturnValue([astrAsset]);
+    vi.mocked(supportsExchangePair).mockReturnValue(true);
+
+    await expect(prepareTransformedOptions({ ...mockOptions, api: mockApi })).rejects.toThrow(
+      'Recipient address must match sender address for same-chain swaps.',
+    );
+  });
 });
