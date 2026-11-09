@@ -70,6 +70,7 @@ const dryRunTransaction = async <TApi, TRes, TSigner, TCustomChain extends strin
 ): Promise<TDryRunResult<TCustomChain>> => {
   const {
     api,
+    origin,
     exchange,
     sender,
     evmSenderAddress,
@@ -83,8 +84,14 @@ const dryRunTransaction = async <TApi, TRes, TSigner, TCustomChain extends strin
 
   assertCurrencyCore(currencyTo);
 
-  const senderResolved = evmSenderAddress ?? sender;
+  const isRoutedExchangeLeg = Boolean(
+    origin && origin.chain !== exchange.chain && chain === exchange.chain,
+  );
+  const senderResolved = isRoutedExchangeLeg ? sender : (evmSenderAddress ?? sender);
   const resolvedDest = destChain ?? destination?.chain ?? exchange.chain;
+  const resolvedCurrency = isRoutedExchangeLeg
+    ? { location: exchange.assetFrom.location, amount: BigInt(amount) }
+    : { ...currencyFrom, amount: BigInt(amount) };
 
   return dryRun({
     api: api.clone(),
@@ -96,10 +103,7 @@ const dryRunTransaction = async <TApi, TRes, TSigner, TCustomChain extends strin
       currencyTo,
       exchangeChain: exchange.chain,
     },
-    currency: {
-      ...currencyFrom,
-      amount: BigInt(amount),
-    },
+    currency: resolvedCurrency,
     feeAsset,
     bypassOptions,
   });

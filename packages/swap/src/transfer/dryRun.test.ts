@@ -218,9 +218,19 @@ describe('dryRunRouter', () => {
     const secondCallArgs = vi.mocked(dryRun).mock.calls[1][0];
 
     expect(firstCallArgs.destination).toBe('Hydration');
+    expect(firstCallArgs.sender).toBe('0xSender');
+    expect(firstCallArgs.currency).toEqual({
+      symbol: 'ACA',
+      amount: 1000n,
+    });
     expect(firstCallArgs.bypassOptions).toBeUndefined();
 
     expect(secondCallArgs.destination).toBe('Darwinia');
+    expect(secondCallArgs.sender).toBe('sender');
+    expect(secondCallArgs.currency).toEqual({
+      location: ausdAsset.location,
+      amount: 1000n,
+    });
     expect(secondCallArgs.bypassOptions).toEqual({
       mintFeeAssets: false,
       sentAssetMintMode: 'preview',
