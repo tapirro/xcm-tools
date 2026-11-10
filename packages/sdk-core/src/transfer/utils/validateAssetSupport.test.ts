@@ -448,12 +448,24 @@ describe('validateEthereumAsset', () => {
       symbol: 'KSM',
       location: {
         parents: 2,
-        interior: { X1: [{ GlobalConsensus: { Kusama: null } }] }
+        interior: { X1: [{ GlobalConsensus: { kusama: null } }] }
       }
     } as TAssetInfo
 
     expect(() =>
       validateEthereumAsset(mockApi, 'AssetHubPolkadot', 'Ethereum', asset)
+    ).not.toThrow()
+
+    const uppercaseKusamaAsset = {
+      symbol: 'KSM',
+      location: {
+        parents: 2,
+        interior: { X1: [{ GlobalConsensus: { Kusama: null } }] }
+      }
+    } as TAssetInfo
+
+    expect(() =>
+      validateEthereumAsset(mockApi, 'AssetHubPolkadot', 'Ethereum', uppercaseKusamaAsset)
     ).not.toThrow()
   })
 
