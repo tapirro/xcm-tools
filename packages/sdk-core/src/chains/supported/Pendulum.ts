@@ -5,7 +5,7 @@ import { Version } from '@paraspell/sdk-common'
 
 import type { PolkadotApi } from '../../api'
 import { transferXTokens } from '../../pallets/xTokens'
-import type { IXTokensTransfer, TXcmAsset, TXTokensTransferOptions } from '../../types'
+import type { IXTokensTransfer, TMintConfig, TXcmAsset, TXTokensTransferOptions } from '../../types'
 import { assertHasId } from '../../utils'
 import SubstrateChain from '../SubstrateChain'
 
@@ -24,6 +24,10 @@ class Pendulum<TApi, TRes, TSigner, TCustomChain extends string = never>
     if (asset.symbol === this.getNativeAssetSymbol(api)) return { Native: null }
     assertHasId(asset)
     return { XCM: Number(asset.assetId) }
+  }
+
+  protected getMintConfig(): TMintConfig {
+    return { useCustomCurrencyId: true }
   }
 
   transferXTokens(input: TXTokensTransferOptions<TApi, TRes, TSigner, TCustomChain>) {

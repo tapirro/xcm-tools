@@ -1,3 +1,4 @@
+import type { TAssetInfo, WithAmount } from '@paraspell/assets'
 import { Version } from '@paraspell/sdk-common'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -96,6 +97,39 @@ describe('Centrifuge', () => {
           keep_alive: false
         }
       })
+    })
+  })
+
+  it('should use custom ForeignAsset currency_id when minting non-native assets', async () => {
+    const mockApi = {
+      isChainEvm: vi.fn().mockReturnValue(false),
+      getNativeAssetSymbol: vi.fn().mockReturnValue('CFG')
+    } as unknown as PolkadotApi<unknown, unknown, unknown>
+
+    const res = await centrifuge.mint(
+      mockApi,
+      'address',
+      {
+        symbol: 'DOT',
+        assetId: '5',
+        decimals: 10,
+        isNative: false,
+        amount: 100n
+      } as WithAmount<TAssetInfo>,
+      0n
+    )
+
+    expect(res).toEqual({
+      balanceTx: {
+        module: 'Tokens',
+        method: 'set_balance',
+        params: {
+          who: { Id: 'address' },
+          currency_id: { ForeignAsset: 5 },
+          new_free: 100n,
+          new_reserved: 0n
+        }
+      }
     })
   })
 })

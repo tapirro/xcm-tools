@@ -1,3 +1,4 @@
+import type { TAssetInfo, WithAmount } from '@paraspell/assets'
 import { Version } from '@paraspell/sdk-common'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -90,6 +91,37 @@ describe('Pendulum', () => {
         dest: { Id: 'address' },
         currency_id: { XCM: 1 },
         amount: 100n
+      }
+    })
+  })
+
+  it('should use custom XCM currency_id and { Id } who when minting non-native assets', async () => {
+    const mintApi = {
+      isChainEvm: vi.fn().mockReturnValue(false)
+    } as unknown as PolkadotApi<unknown, unknown, unknown>
+
+    const res = await chain.mint(
+      mintApi,
+      'address',
+      {
+        symbol: 'DOT',
+        assetId: '0',
+        decimals: 10,
+        isNative: false,
+        amount: 100n
+      } as WithAmount<TAssetInfo>,
+      0n
+    )
+
+    expect(res).toEqual({
+      balanceTx: {
+        module: 'Currencies',
+        method: 'update_balance',
+        params: {
+          who: { Id: 'address' },
+          currency_id: { XCM: 0 },
+          amount: 100n
+        }
       }
     })
   })

@@ -617,6 +617,10 @@ describe('transform', () => {
           currency_id: 'invalid_currency',
           dest_weight: null,
           extra_field: 'extra_value'
+        },
+        mint_params: {
+          currency_id: '42',
+          new_free: 100n
         }
       }
     }
@@ -630,6 +634,10 @@ describe('transform', () => {
           currency_id: { type: 'invalid_currency' },
           dest_weight: undefined,
           extra_field: { type: 'extra_value' }
+        },
+        mint_params: {
+          currency_id: 42,
+          new_free: 100n
         }
       }
     }
