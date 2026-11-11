@@ -64,17 +64,46 @@ describe('getTransferableAmount', () => {
     const result = await getTransferableAmount(baseOptions)
 
     expect(result).toBe(balance - ed - fee)
+    expect(findAssetInfoOrThrowSpy).toHaveBeenCalledWith(
+      'Astar',
+      { symbol: 'DOT', amount: 1000n },
+      'BifrostPolkadot'
+    )
     expect(getOriginXcmFee).toHaveBeenCalledWith({
       api: mockApi,
       buildTx,
       origin: 'Astar',
-      destination: 'Astar',
+      destination: 'BifrostPolkadot',
       sender: 'validAddress',
       feeAsset: undefined,
       version: baseOptions.version,
       currency: { symbol: 'DOT', amount: 1000n },
       disableFallback: false
     })
+  })
+
+  test('forwards destination to findAssetInfoOrThrow to disambiguate duplicate symbols', async () => {
+    findAssetInfoOrThrowSpy.mockReturnValue({
+      symbol: 'USDC',
+      decimals: 6,
+      existentialDeposit: '100'
+    } as TAssetInfo)
+    findNativeAssetInfoOrThrowSpy.mockReturnValue({ symbol: 'DOT' } as TAssetInfo)
+    vi.mocked(getAssetBalanceInternal).mockResolvedValue(1000n)
+
+    const result = await getTransferableAmount({
+      ...baseOptions,
+      origin: 'AssetHubPolkadot',
+      destination: 'Ethereum',
+      currency: { symbol: 'USDC', amount: 1000n }
+    })
+
+    expect(result).toBe(900n)
+    expect(findAssetInfoOrThrowSpy).toHaveBeenCalledWith(
+      'AssetHubPolkadot',
+      { symbol: 'USDC', amount: 1000n },
+      'Ethereum'
+    )
   })
 
   test('does not subtract XCM fee for non-native asset', async () => {
@@ -223,7 +252,11 @@ describe('getTransferableAmount', () => {
 
     expect(result).toEqual([1000n - ed - fee, 500n - ed])
     expect(getOriginXcmFee).toHaveBeenCalledWith(
-      expect.objectContaining({ currency: currenciesOptions.currency })
+      expect.objectContaining({
+        origin: 'Astar',
+        destination: 'BifrostPolkadot',
+        currency: currenciesOptions.currency
+      })
     )
   })
 
