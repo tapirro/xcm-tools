@@ -104,7 +104,7 @@ describe('buildExecuteSwapHops', () => {
       api: mockApi,
       chain: 'AssetHubPolkadot',
       fee: 3n,
-      originChain: 'Acala',
+      originChain: 'Hydration',
       currency: currencyTo,
       asset: usdtAsset,
       sender: 'Alice',

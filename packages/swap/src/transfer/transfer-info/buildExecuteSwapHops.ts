@@ -43,7 +43,7 @@ export const buildExecuteSwapHops = async <
         api,
         chain: hop.chain,
         fee: hop.result.fee ?? 0n,
-        originChain,
+        originChain: isAfterSwap ? exchangeChain : originChain,
         currency: isAfterSwap ? currencyTo : currencyFrom,
         asset: hop.result.asset,
         sender,

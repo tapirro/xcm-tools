@@ -206,6 +206,13 @@ describe('getExecuteSwapInfo', () => {
         assets: [{ ...acaAsset, amount: 1000n }],
       }),
     );
+    expect(buildDestInfo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        origin: 'Hydration',
+        destination: 'Hydration',
+        currency: { location: usdtAsset.location, amount: 500n },
+      }),
+    );
     expect(result.chain.origin).toBe('Acala');
     expect(result.origin.isExchange).toBeUndefined();
   });
@@ -253,7 +260,7 @@ describe('getExecuteSwapInfo', () => {
 
     expect(buildDestInfo).toHaveBeenCalledWith(
       expect.objectContaining({
-        currency: { ...baseOptions.currencyTo, amount: 500n },
+        currency: { location: usdtAsset.location, amount: 500n },
         destFeeDetail: destFee,
         originFee: originFee.fee,
         isOriginFeeAsset: false,
@@ -328,7 +335,7 @@ describe('getExecuteSwapInfo', () => {
       originChain: 'Hydration',
       exchangeChain: 'Hydration',
       currencyFrom: baseOptions.currencyFrom,
-      currencyTo: baseOptions.currencyTo,
+      currencyTo: { location: usdtAsset.location },
       sender: 'Alice',
     });
     expect(result.hops).toBe(builtHops);

@@ -63,13 +63,15 @@ export const getExecuteSwapInfo = async <TApi, TRes, TSigner, TCustomChain exten
 
   const originInfo = { selectedCurrency: selectedCurrency[0], xcmFee: originXcmFee };
 
+  const postSwapCurrency = { location: exchange.assetTo.location };
+
   const builtHops = await buildExecuteSwapHops({
     api,
     hops: xcmFeeResult.hops,
     originChain,
     exchangeChain: exchange.chain,
     currencyFrom,
-    currencyTo,
+    currencyTo: postSwapCurrency,
     sender: senderAddress,
   });
 
@@ -80,10 +82,10 @@ export const getExecuteSwapInfo = async <TApi, TRes, TSigner, TCustomChain exten
 
   const destinationInfo = await buildDestInfo({
     api,
-    origin: originChain,
+    origin: exchange.chain,
     destination: destChain,
     recipient: recipientAddress,
-    currency: { ...currencyTo, amount: amountOut },
+    currency: { ...postSwapCurrency, amount: amountOut },
     originFee: xcmFeeResult.origin.fee,
     isOriginFeeAsset: false,
     paysDestFee: true,
