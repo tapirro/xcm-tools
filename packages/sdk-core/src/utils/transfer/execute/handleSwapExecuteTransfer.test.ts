@@ -18,7 +18,8 @@ vi.mock('../../fees/padFee', () => ({
 }))
 
 vi.mock('../../chain', () => ({
-  getChainVersion: () => 2
+  getChainVersion: () => 2,
+  getRelayChainOf: () => 'Polkadot'
 }))
 
 vi.mock('./createExecuteCall', () => ({
@@ -374,6 +375,49 @@ describe('handleSwapExecuteTransfer', () => {
       })
       expect(finalCall[0].fees.originFee).toBe(0n)
       expect(options.calculateMinAmountOut).toHaveBeenCalledWith(1680n)
+    })
+  })
+
+  describe('Ethereum destination with native DOT input (no separate fee asset)', () => {
+    it('extracts AssetHub and BridgeHub hop fees and deducts them from amountAvailableForSwap when chain is undefined', async () => {
+      vi.mocked(isAssetEqual).mockReturnValue(true)
+      const ethDryRun = {
+        origin: { success: true, fee: 50n, currency: 'HDX' },
+        hops: [
+          {
+            chain: 'AssetHubPolkadot',
+            result: { success: true, fee: 100n, currency: 'DOT' }
+          },
+          {
+            chain: 'BridgeHubPolkadot',
+            result: { success: true, fee: 300n, currency: 'DOT' }
+          }
+        ]
+      } as unknown as TDryRunResult
+
+      vi.spyOn(dryRunModule, 'dryRunInternal').mockResolvedValue(ethDryRun)
+      const calculateMinAmountOut = vi.fn().mockResolvedValue(900n)
+
+      const result = await handleSwapExecuteTransfer({
+        ...baseOptions,
+        chain: undefined,
+        exchangeChain: 'Hydration',
+        destChain: 'Ethereum',
+        assetInfoFrom: {
+          ...baseOptions.assetInfoFrom,
+          amount: 5000n
+        },
+        calculateMinAmountOut
+      })
+
+      expect(result).toMatch(/^tx:/)
+      const [, finalCall] = vi.mocked(createSwapExecuteXcm).mock.calls
+      // 100n + 10n = 110n, 300n + 10n = 310n
+      expect(finalCall[0].fees.destReserveFee).toBe(110n)
+      expect(finalCall[0].fees.destFee).toBe(310n)
+      // 5000n - (110n + 310n) = 4580n available for swap
+      expect(calculateMinAmountOut).toHaveBeenCalledWith(4580n)
+      expect(finalCall[0].assetInfoTo.amount).toBe(900n)
     })
   })
 })
